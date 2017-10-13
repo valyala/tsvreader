@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"time"
 	"unsafe"
 )
 
@@ -111,7 +112,7 @@ func (tr *Reader) Next() bool {
 	}
 }
 
-// Int returns the next int column in the current row.
+// Int returns the next int column value from the current row.
 func (tr *Reader) Int() int {
 	if tr.err != nil {
 		return 0
@@ -130,7 +131,7 @@ func (tr *Reader) Int() int {
 	return n
 }
 
-// Uint returns the next uint column in the current row.
+// Uint returns the next uint column value from the current row.
 func (tr *Reader) Uint() uint {
 	if tr.err != nil {
 		return 0
@@ -157,7 +158,7 @@ func (tr *Reader) Uint() uint {
 	return uint(nu)
 }
 
-// Int32 returns the next int32 column in the current row.
+// Int32 returns the next int32 column value from the current row.
 func (tr *Reader) Int32() int32 {
 	if tr.err != nil {
 		return 0
@@ -184,7 +185,7 @@ func (tr *Reader) Int32() int32 {
 	return int32(n32)
 }
 
-// Uint32 returns the next uint32 column in the current row.
+// Uint32 returns the next uint32 column value from the current row.
 func (tr *Reader) Uint32() uint32 {
 	if tr.err != nil {
 		return 0
@@ -211,7 +212,7 @@ func (tr *Reader) Uint32() uint32 {
 	return uint32(n32)
 }
 
-// Int64 returns the next int64 column in the current row.
+// Int64 returns the next int64 column value from the current row.
 func (tr *Reader) Int64() int64 {
 	if tr.err != nil {
 		return 0
@@ -238,7 +239,7 @@ func (tr *Reader) Int64() int64 {
 	return n64
 }
 
-// Uint64 returns the next uint64 column in the current row.
+// Uint64 returns the next uint64 column value from the current row.
 func (tr *Reader) Uint64() uint64 {
 	if tr.err != nil {
 		return 0
@@ -265,7 +266,7 @@ func (tr *Reader) Uint64() uint64 {
 	return n64
 }
 
-// Float32 returns the next float32 column in the current row.
+// Float32 returns the next float32 column value from the current row.
 func (tr *Reader) Float32() float32 {
 	if tr.err != nil {
 		return 0
@@ -285,7 +286,7 @@ func (tr *Reader) Float32() float32 {
 	return float32(f32)
 }
 
-// Float64 returns the next float64 column in the current row.
+// Float64 returns the next float64 column value from the current row.
 func (tr *Reader) Float64() float64 {
 	if tr.err != nil {
 		return 0
@@ -305,7 +306,7 @@ func (tr *Reader) Float64() float64 {
 	return f64
 }
 
-// Bytes returns the next bytes column in the current row.
+// Bytes returns the next bytes column value from the current row.
 //
 // The returned value is valid until the next call to Reader.
 func (tr *Reader) Bytes() []byte {
@@ -319,6 +320,121 @@ func (tr *Reader) Bytes() []byte {
 	}
 	return b
 }
+
+// Date returns the next date column value from the current row.
+//
+// date must be in the format YYYY-MM-DD
+func (tr *Reader) Date() time.Time {
+	if tr.err != nil {
+		return zeroTime
+	}
+	b, err := tr.nextCol()
+	if err != nil {
+		tr.setColError("cannot read `date`", err)
+		return zeroTime
+	}
+	s := b2s(b)
+
+	y, m, d, err := parseDate(s)
+	if err != nil {
+		tr.setColError("cannot parse `date`", err)
+		return zeroTime
+	}
+	if y == 0 && m == 0 && d == 0 {
+		// special case for ClickHouse
+		return zeroTime
+	}
+	return time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.UTC)
+}
+
+// DateTime returns the next datetime column value from the current row.
+//
+// datetime must be in the format YYYY-MM-DD hh:mm:ss.
+func (tr *Reader) DateTime() time.Time {
+	if tr.err != nil {
+		return zeroTime
+	}
+	b, err := tr.nextCol()
+	if err != nil {
+		tr.setColError("cannot read `datetime`", err)
+		return zeroTime
+	}
+	s := b2s(b)
+
+	dt, err := parseDateTime(s)
+	if err != nil {
+		tr.setColError("cannot parse `datetime`", err)
+		return zeroTime
+	}
+	return dt
+}
+
+func parseDateTime(s string) (time.Time, error) {
+	if len(s) != len("YYYY-MM-DD hh:mm:ss") {
+		return zeroTime, fmt.Errorf("too short datetime")
+	}
+	y, m, d, err := parseDate(s[:len("YYYY-MM-DD")])
+	if err != nil {
+		return zeroTime, err
+	}
+	s = s[len("YYYY-MM-DD"):]
+	if s[0] != ' ' || s[3] != ':' || s[6] != ':' {
+		return zeroTime, fmt.Errorf("invalid time format. Must be hh:mm:ss")
+	}
+	hS := s[1:3]
+	minS := s[4:6]
+	secS := s[7:]
+	h, err := strconv.Atoi(hS)
+	if err != nil {
+		return zeroTime, fmt.Errorf("invalid hour: %s", err)
+	}
+	min, err := strconv.Atoi(minS)
+	if err != nil {
+		return zeroTime, fmt.Errorf("invalid minute: %s", err)
+	}
+	sec, err := strconv.Atoi(secS)
+	if err != nil {
+		return zeroTime, fmt.Errorf("invalid second: %s", err)
+	}
+	if y == 0 && m == 0 && d == 0 {
+		// Special case for ClickHouse
+		return zeroTime, nil
+	}
+	return time.Date(y, time.Month(m), d, h, min, sec, 0, time.UTC), nil
+}
+
+func parseDate(s string) (y, m, d int, err error) {
+	if len(s) != len("YYYY-MM-DD") {
+		err = fmt.Errorf("too short date")
+		return
+	}
+	s = s[:len("YYYY-MM-DD")]
+	if s[4] != '-' && s[7] != '-' {
+		err = fmt.Errorf("invalid date format. Must be YYYY-MM-DD")
+		return
+	}
+	yS := s[:4]
+	mS := s[5:7]
+	dS := s[8:]
+	y, err = strconv.Atoi(yS)
+	if err != nil {
+		err = fmt.Errorf("invalid year: %s", err)
+		return
+	}
+	m, err = strconv.Atoi(mS)
+	if err != nil {
+		err = fmt.Errorf("invalid month: %s", err)
+		return
+	}
+	d, err = strconv.Atoi(dS)
+	if err != nil {
+		err = fmt.Errorf("invalid day: %s", err)
+		return
+	}
+	return y, m, d, nil
+}
+
+var zeroTime time.Time
 
 func (tr *Reader) nextCol() ([]byte, error) {
 	if tr.row == 0 {

@@ -977,3 +977,126 @@ func testReaderFloat64Error(t *testing.T, s string) {
 		t.Fatalf("unexpected error: %s. Must contain %q", errS, "invalid syntax")
 	}
 }
+
+func TestReaderDateSuccess(t *testing.T) {
+	testReaderDateSuccess(t, "0000-00-00")
+	testReaderDateSuccess(t, "1970-01-01")
+	testReaderDateSuccess(t, "2017-10-13")
+}
+
+func testReaderDateSuccess(t *testing.T, date string) {
+	t.Helper()
+	b := bytes.NewBufferString(date + "\n")
+	r := New(b)
+	r.Next()
+	dt := r.Date()
+	if r.Error() != nil {
+		t.Fatalf("unexpected error on date %q: %s", date, r.Error())
+	}
+	if dt.Hour() != 0 {
+		t.Fatalf("unexpected non-zero hour: %d", dt.Hour())
+	}
+	if dt.Minute() != 0 {
+		t.Fatalf("unexpected non-zero minute: %d", dt.Minute())
+	}
+	if dt.Second() != 0 {
+		t.Fatalf("unexpected non-zero second: %d", dt.Second())
+	}
+	s := dt.Format("2006-01-02")
+	if s != date && !(date == "0000-00-00" && dt.IsZero()) {
+		t.Fatalf("unexpected date: %q. Expecting %q", s, date)
+	}
+}
+
+func TestReaderDateFailure(t *testing.T) {
+	testReaderDateFailure(t, "")
+	testReaderDateFailure(t, "foobar")
+	testReaderDateFailure(t, "2017")
+	testReaderDateFailure(t, "2017-10")
+	testReaderDateFailure(t, "2017-10-")
+	testReaderDateFailure(t, "2017-10-1")
+	testReaderDateFailure(t, "2017-10-aa")
+	testReaderDateFailure(t, "2017-bb-aa")
+	testReaderDateFailure(t, "20cc-1b-3a")
+	testReaderDateFailure(t, "2017-10-10 ")
+}
+
+func testReaderDateFailure(t *testing.T, date string) {
+	t.Helper()
+	b := bytes.NewBufferString(date + "\n")
+	r := New(b)
+	r.Next()
+	dt := r.Date()
+	if !dt.IsZero() {
+		t.Fatalf("unexpected non-zero date when parsing %q: %s", dt, date)
+	}
+	if r.Error() == nil {
+		t.Fatalf("expecting non-nil error")
+	}
+	errS := r.Error().Error()
+	if !strings.Contains(errS, "cannot parse `date`") {
+		t.Fatalf("unexpected error: %s. Must contain %q", errS, "cannot parse `date`")
+	}
+}
+
+func TestReaderDateTimeSuccess(t *testing.T) {
+	testReaderDateTimeSuccess(t, "0000-00-00 00:00:00")
+	testReaderDateTimeSuccess(t, "1970-01-01 12:34:56")
+	testReaderDateTimeSuccess(t, "2017-10-13 23:59:59")
+}
+
+func testReaderDateTimeSuccess(t *testing.T, datetime string) {
+	t.Helper()
+	b := bytes.NewBufferString(datetime + "\n")
+	r := New(b)
+	r.Next()
+	dt := r.DateTime()
+	if r.Error() != nil {
+		t.Fatalf("unexpected error on datetime %q: %s", datetime, r.Error())
+	}
+	s := dt.Format("2006-01-02 15:04:05")
+	if s != datetime && !(datetime == "0000-00-00 00:00:00" && dt.IsZero()) {
+		t.Fatalf("unexpected datetime: %q. Expecting %q", s, datetime)
+	}
+}
+
+func TestReaderDateTimeFailure(t *testing.T) {
+	testReaderDateTimeFailure(t, "")
+	testReaderDateTimeFailure(t, "foobar")
+	testReaderDateTimeFailure(t, "2017")
+	testReaderDateTimeFailure(t, "2017-10")
+	testReaderDateTimeFailure(t, "2017-10-")
+	testReaderDateTimeFailure(t, "2017-10-1")
+	testReaderDateTimeFailure(t, "2017-10-aa")
+	testReaderDateTimeFailure(t, "2017-bb-aa")
+	testReaderDateTimeFailure(t, "20cc-1b-3a")
+	testReaderDateTimeFailure(t, "2017-01-10")
+	testReaderDateTimeFailure(t, "2017-01-10 ")
+	testReaderDateTimeFailure(t, "2017-01-10 10")
+	testReaderDateTimeFailure(t, "2017-01-10 10:20")
+	testReaderDateTimeFailure(t, "2017-01-10 10:20:3")
+	testReaderDateTimeFailure(t, "2017-01-10T10:20:30")
+	testReaderDateTimeFailure(t, "2017-01-10 10:20:30 ")
+	testReaderDateTimeFailure(t, "2017-01-10 10:20:3c")
+	testReaderDateTimeFailure(t, "2017-01-10 10:2s:3c")
+	testReaderDateTimeFailure(t, "2017-01-10 1w:2s:3c")
+	testReaderDateTimeFailure(t, "2017-01-10 1w:2s:3c s")
+}
+
+func testReaderDateTimeFailure(t *testing.T, datetime string) {
+	t.Helper()
+	b := bytes.NewBufferString(datetime + "\n")
+	r := New(b)
+	r.Next()
+	dt := r.DateTime()
+	if !dt.IsZero() {
+		t.Fatalf("unexpected non-zero datetime when parsing %q: %s", dt, datetime)
+	}
+	if r.Error() == nil {
+		t.Fatalf("expecting non-nil error")
+	}
+	errS := r.Error().Error()
+	if !strings.Contains(errS, "cannot parse `datetime`") {
+		t.Fatalf("unexpected error: %s. Must contain %q", errS, "cannot parse `datetime`")
+	}
+}
