@@ -898,6 +898,9 @@ func TestReaderFloat32Success(t *testing.T) {
 	testReaderFloat32Success(t, 0.123)
 	testReaderFloat32Success(t, -1.2345)
 	testReaderFloat32Success(t, 123e34)
+	testReaderFloat64Success(t, math.NaN())
+	testReaderFloat64Success(t, math.Inf(1))
+	testReaderFloat64Success(t, math.Inf(-1))
 }
 
 func testReaderFloat32Success(t *testing.T, f float32) {
@@ -906,7 +909,7 @@ func testReaderFloat32Success(t *testing.T, f float32) {
 	r := New(b)
 	r.Next()
 	f32 := r.Float32()
-	if f32 != f {
+	if f32 != f && !(math.IsNaN(float64(f32)) && math.IsNaN(float64(f))) {
 		t.Fatalf("unexpected float32: %f. Expecting %f", f32, f)
 	}
 	if r.Error() != nil {
@@ -946,6 +949,9 @@ func TestReaderFloat64Success(t *testing.T) {
 	testReaderFloat64Success(t, 0.123)
 	testReaderFloat64Success(t, -1.2345)
 	testReaderFloat64Success(t, 123e34)
+	testReaderFloat64Success(t, math.NaN())
+	testReaderFloat64Success(t, math.Inf(1))
+	testReaderFloat64Success(t, math.Inf(-1))
 }
 
 func testReaderFloat64Success(t *testing.T, f float64) {
@@ -954,7 +960,7 @@ func testReaderFloat64Success(t *testing.T, f float64) {
 	r := New(b)
 	r.Next()
 	f64 := r.Float64()
-	if f64 != f {
+	if f64 != f && !(math.IsNaN(f64) && math.IsNaN(f)) {
 		t.Fatalf("unexpected float64: %f. Expecting %f", f64, f)
 	}
 	if r.Error() != nil {
