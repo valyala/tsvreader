@@ -349,7 +349,7 @@ func (tr *Reader) Bytes() []byte {
 		case '\\':
 			d[len(d)-1] = '\\'
 		default:
-			d = append(d, b[0])
+			d[len(d)-1] = b[0]
 		}
 
 		b = b[1:]

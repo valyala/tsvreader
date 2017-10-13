@@ -1105,6 +1105,7 @@ func TestReaderBytesUnescape(t *testing.T) {
 	testReaderBytesUnescape(t, `\`, `\`)
 	testReaderBytesUnescape(t, `\b\f\r\n\t\0\'\\`, "\b\f\r\n\t\x00'\\")
 	testReaderBytesUnescape(t, `0\b11\f2\r3\n4\t5\06\'7\\8`, "0\b11\f2\r3\n4\t5\x006'7\\8")
+	testReaderBytesUnescape(t, `\1\2\3\4\`, "1234\\")
 }
 
 func testReaderBytesUnescape(t *testing.T, before, after string) {
