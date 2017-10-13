@@ -34,6 +34,24 @@ func TestReaderEmpty(t *testing.T) {
 	}
 }
 
+func TestReaderNoNext(t *testing.T) {
+	b := bytes.NewBufferString("aaa\n")
+	r := New(b)
+
+	n := r.Int()
+	if n != 0 {
+		t.Fatalf("unexpected non-zero int: %d", n)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-nil error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "missing Next call") {
+		t.Fatalf("unexpected error: %s. Must contains %q", errS, "missing Next call")
+	}
+}
+
 func TestReaderEmptyCol(t *testing.T) {
 	b := bytes.NewBufferString("\t\tfoobar\t\n")
 	r := New(b)

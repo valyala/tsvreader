@@ -321,6 +321,9 @@ func (tr *Reader) Bytes() []byte {
 }
 
 func (tr *Reader) nextCol() ([]byte, error) {
+	if tr.row == 0 {
+		return nil, fmt.Errorf("missing Next call")
+	}
 	if tr.b == nil {
 		return nil, fmt.Errorf("no more columns")
 	}
