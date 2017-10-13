@@ -141,6 +141,41 @@ func TestReaderReset(t *testing.T) {
 	}
 }
 
+func TestReaderClose(t *testing.T) {
+	rc := &readCloser{}
+	r := New(rc)
+	if err := r.Close(); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if !rc.closed {
+		t.Fatalf("Close wasnt called")
+	}
+
+	// Make sure it is safe to call Close multiple times
+	rc.closed = false
+	for i := 0; i < 10; i++ {
+		if err := r.Close(); err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if rc.closed {
+			t.Fatalf("unexpected Close call")
+		}
+	}
+}
+
+type readCloser struct {
+	closed bool
+}
+
+func (rc *readCloser) Read(p []byte) (int, error) {
+	return len(p), nil
+}
+
+func (rc *readCloser) Close() error {
+	rc.closed = true
+	return nil
+}
+
 func TestReaderSingleRowBytesCol(t *testing.T) {
 	expectedS := "foobar"
 	b := bytes.NewBufferString(fmt.Sprintf("%s\n", expectedS))
