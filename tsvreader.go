@@ -318,7 +318,51 @@ func (tr *Reader) Bytes() []byte {
 		tr.setColError("cannot read `bytes`", err)
 		return nil
 	}
-	return b
+
+	// Unescape b
+	n := bytes.IndexByte(b, '\\')
+	if n < 0 {
+		// Fast path - nothing to unescape
+		return b
+	}
+
+	// Slow path - in-place unescaping compatible with ClickHouse
+	n++
+	d := b[:n]
+	b = b[n:]
+	for len(b) > 0 {
+		switch b[0] {
+		case 'b':
+			d[len(d)-1] = '\b'
+		case 'f':
+			d[len(d)-1] = '\f'
+		case 'r':
+			d[len(d)-1] = '\r'
+		case 'n':
+			d[len(d)-1] = '\n'
+		case 't':
+			d[len(d)-1] = '\t'
+		case '0':
+			d[len(d)-1] = 0
+		case '\'':
+			d[len(d)-1] = '\''
+		case '\\':
+			d[len(d)-1] = '\\'
+		default:
+			d = append(d, b[0])
+		}
+
+		b = b[1:]
+		n = bytes.IndexByte(b, '\\')
+		if n < 0 {
+			d = append(d, b...)
+			break
+		}
+		n++
+		d = append(d, b[:n]...)
+		b = b[n:]
+	}
+	return d
 }
 
 // Date returns the next date column value from the current row.

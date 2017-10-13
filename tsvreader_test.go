@@ -1100,3 +1100,23 @@ func testReaderDateTimeFailure(t *testing.T, datetime string) {
 		t.Fatalf("unexpected error: %s. Must contain %q", errS, "cannot parse `datetime`")
 	}
 }
+
+func TestReaderBytesUnescape(t *testing.T) {
+	testReaderBytesUnescape(t, `\`, `\`)
+	testReaderBytesUnescape(t, `\b\f\r\n\t\0\'\\`, "\b\f\r\n\t\x00'\\")
+	testReaderBytesUnescape(t, `0\b11\f2\r3\n4\t5\06\'7\\8`, "0\b11\f2\r3\n4\t5\x006'7\\8")
+}
+
+func testReaderBytesUnescape(t *testing.T, before, after string) {
+	t.Helper()
+	b := bytes.NewBufferString(before + "\n")
+	r := New(b)
+	r.Next()
+	bb := r.Bytes()
+	if r.Error() != nil {
+		t.Fatalf("unexpected error when parsing %q: %s", before, r.Error())
+	}
+	if string(bb) != after {
+		t.Fatalf("unexpected unescaped result: %q. Expecting %q", bb, after)
+	}
+}
