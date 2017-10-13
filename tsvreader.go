@@ -41,7 +41,7 @@ type Reader struct {
 	err error
 }
 
-// Close closes the reader.
+// Close closes the underlying reader.
 func (tr *Reader) Close() error {
 	if tr.r == nil {
 		return nil
