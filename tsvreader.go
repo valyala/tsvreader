@@ -20,6 +20,7 @@ func New(r io.Reader) *Reader {
 // Reader reads tab-separated data.
 //
 // Call New for creating new TSV reader.
+// Call Next before reading the next row.
 //
 // It is expected that columns are separated by tabs while rows
 // are separated by newlines.
