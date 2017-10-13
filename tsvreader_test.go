@@ -635,24 +635,19 @@ func (ss *slowSource) Read(p []byte) (int, error) {
 }
 
 func TestReaderUintSuccess(t *testing.T) {
-	const maxN = (1 << strconv.IntSize) - 1
-	b := bytes.NewBufferString(fmt.Sprintf("%d\n", uint(maxN)))
+	testReaderUintSuccess(t, (1<<strconv.IntSize)-1)
+	testReaderUintSuccess(t, 0)
+	testReaderUintSuccess(t, 10)
+}
+
+func testReaderUintSuccess(t *testing.T, expectedN uint) {
+	t.Helper()
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
 	n := r.Uint()
-	if n != maxN {
-		t.Fatalf("unexpected uint: %d. Expecting %d", n, uint(maxN))
-	}
-	if r.Error() != nil {
-		t.Fatalf("unexpected error: %s", r.Error())
-	}
-
-	b = bytes.NewBufferString("0\n")
-	r.Reset(b)
-	r.Next()
-	n = r.Uint()
-	if n != 0 {
-		t.Fatalf("unexpected uint32: %d. Expecting %d", n, 0)
+	if n != expectedN {
+		t.Fatalf("unexpected uint: %d. Expecting %d", n, expectedN)
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -678,23 +673,21 @@ func TestReaderUintNegative(t *testing.T) {
 }
 
 func TestReaderInt32Success(t *testing.T) {
-	b := bytes.NewBufferString(fmt.Sprintf("%d\n", math.MaxInt32))
+	testReaderInt32Success(t, math.MaxInt32)
+	testReaderInt32Success(t, math.MinInt32)
+	testReaderInt32Success(t, 0)
+	testReaderInt32Success(t, 10)
+	testReaderInt32Success(t, -10)
+}
+
+func testReaderInt32Success(t *testing.T, expectedN int32) {
+	t.Helper()
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
 	n := r.Int32()
-	if n != math.MaxInt32 {
-		t.Fatalf("unexpected int32: %d. Expecting %d", n, math.MaxInt32)
-	}
-	if r.Error() != nil {
-		t.Fatalf("unexpected error: %s", r.Error())
-	}
-
-	b = bytes.NewBufferString("0\n")
-	r.Reset(b)
-	r.Next()
-	n = r.Int32()
-	if n != 0 {
-		t.Fatalf("unexpected int32: %d. Expecting %d", n, 0)
+	if n != expectedN {
+		t.Fatalf("unexpected int32: %d. Expecting %d", n, expectedN)
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -725,23 +718,19 @@ func testReaderInt32TooBig(t *testing.T, s string) {
 }
 
 func TestReaderUint32Success(t *testing.T) {
-	b := bytes.NewBufferString(fmt.Sprintf("%d\n", math.MaxUint32))
+	testReaderUint32Success(t, math.MaxUint32)
+	testReaderUint32Success(t, 0)
+	testReaderUint32Success(t, 10)
+}
+
+func testReaderUint32Success(t *testing.T, expectedN uint32) {
+	t.Helper()
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
 	n := r.Uint32()
-	if n != math.MaxUint32 {
-		t.Fatalf("unexpected uint32: %d. Expecting %d", n, math.MaxUint32)
-	}
-	if r.Error() != nil {
-		t.Fatalf("unexpected error: %s", r.Error())
-	}
-
-	b = bytes.NewBufferString("0\n")
-	r.Reset(b)
-	r.Next()
-	n = r.Uint32()
-	if n != 0 {
-		t.Fatalf("unexpected uint32: %d. Expecting %d", n, 0)
+	if n != expectedN {
+		t.Fatalf("unexpected uint32: %d. Expecting %d", n, expectedN)
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -785,23 +774,21 @@ func TestReaderUint32TooBig(t *testing.T) {
 }
 
 func TestReaderInt64Success(t *testing.T) {
-	b := bytes.NewBufferString(fmt.Sprintf("%d\n", int64(math.MaxInt64)))
+	testReaderInt64Success(t, math.MaxInt64)
+	testReaderInt64Success(t, math.MinInt64)
+	testReaderInt64Success(t, 0)
+	testReaderInt64Success(t, 10)
+	testReaderInt64Success(t, -10)
+}
+
+func testReaderInt64Success(t *testing.T, expectedN int64) {
+	t.Helper()
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
 	n := r.Int64()
-	if n != math.MaxInt64 {
-		t.Fatalf("unexpected int64: %d. Expecting %d", n, math.MaxInt64)
-	}
-	if r.Error() != nil {
-		t.Fatalf("unexpected error: %s", r.Error())
-	}
-
-	b = bytes.NewBufferString("0\n")
-	r.Reset(b)
-	r.Next()
-	n = r.Int64()
-	if n != 0 {
-		t.Fatalf("unexpected int32: %d. Expecting %d", n, 0)
+	if n != expectedN {
+		t.Fatalf("unexpected int64: %d. Expecting %d", n, expectedN)
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -832,23 +819,19 @@ func testReaderInt64TooBig(t *testing.T, s string) {
 }
 
 func TestReaderUint64Success(t *testing.T) {
-	b := bytes.NewBufferString(fmt.Sprintf("%d\n", uint64(math.MaxUint64)))
+	testReaderUint64Success(t, math.MaxUint64)
+	testReaderUint64Success(t, 0)
+	testReaderUint64Success(t, 10)
+}
+
+func testReaderUint64Success(t *testing.T, expectedN uint64) {
+	t.Helper()
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
 	n := r.Uint64()
-	if n != math.MaxUint64 {
-		t.Fatalf("unexpected uint64: %d. Expecting %d", n, uint64(math.MaxUint64))
-	}
-	if r.Error() != nil {
-		t.Fatalf("unexpected error: %s", r.Error())
-	}
-
-	b = bytes.NewBufferString("0\n")
-	r.Reset(b)
-	r.Next()
-	n = r.Uint64()
-	if n != 0 {
-		t.Fatalf("unexpected uint64: %d. Expecting %d", n, 0)
+	if n != expectedN {
+		t.Fatalf("unexpected uint64: %d. Expecting %d", n, expectedN)
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -904,6 +887,7 @@ func TestReaderFloat32Success(t *testing.T) {
 }
 
 func testReaderFloat32Success(t *testing.T, f float32) {
+	t.Helper()
 	s := fmt.Sprintf("%f\n", f)
 	b := bytes.NewBufferString(s)
 	r := New(b)
@@ -955,6 +939,7 @@ func TestReaderFloat64Success(t *testing.T) {
 }
 
 func testReaderFloat64Success(t *testing.T, f float64) {
+	t.Helper()
 	s := fmt.Sprintf("%f\n", f)
 	b := bytes.NewBufferString(s)
 	r := New(b)
