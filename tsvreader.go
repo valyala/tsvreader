@@ -15,7 +15,6 @@ import (
 func New(r io.Reader) *Reader {
 	return &Reader{
 		br: bufio.NewReader(r),
-		r:  r,
 	}
 }
 
@@ -23,13 +22,11 @@ func New(r io.Reader) *Reader {
 //
 // Call New for creating new TSV reader.
 // Call Next before reading the next row.
-// Call Close after the reader is no longer needed.
 //
 // It is expected that columns are separated by tabs while rows
 // are separated by newlines.
 type Reader struct {
 	br *bufio.Reader
-	r  io.Reader
 
 	col int
 	row int
@@ -41,29 +38,13 @@ type Reader struct {
 	err error
 }
 
-// Close closes the reader.
-func (tr *Reader) Close() error {
-	if tr.r == nil {
-		return nil
-	}
-
-	var err error
-	if rc, ok := tr.r.(io.Closer); ok {
-		err = rc.Close()
-	}
-	tr.r = nil
-	return err
-}
-
 // Reset resets the reader for reading from r.
 func (tr *Reader) Reset(r io.Reader) {
-	tr.Close()
 	if tr.br == nil {
 		tr.br = bufio.NewReader(r)
 	} else {
 		tr.br.Reset(r)
 	}
-	tr.r = r
 
 	tr.col = 0
 	tr.row = 0
