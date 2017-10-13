@@ -212,6 +212,102 @@ func (tr *Reader) Uint32() uint32 {
 	return uint32(n32)
 }
 
+// Int16 returns the next int16 column value from the current row.
+func (tr *Reader) Int16() int16 {
+	if tr.err != nil {
+		return 0
+	}
+	b, err := tr.nextCol()
+	if err != nil {
+		tr.setColError("cannot read `int16`", err)
+		return 0
+	}
+	n, err := strconv.Atoi(b2s(b))
+	if err != nil {
+		tr.setColError("cannot parse `int16`", err)
+		return 0
+	}
+	if n < math.MinInt16 || n > math.MaxInt16 {
+		tr.setColError("cannot parse `int16`", fmt.Errorf("out of range"))
+		return 0
+	}
+	return int16(n)
+}
+
+// Uint16 returns the next uint16 column value from the current row.
+func (tr *Reader) Uint16() uint16 {
+	if tr.err != nil {
+		return 0
+	}
+	b, err := tr.nextCol()
+	if err != nil {
+		tr.setColError("cannot read `uint16`", err)
+		return 0
+	}
+	n, err := strconv.Atoi(b2s(b))
+	if err != nil {
+		tr.setColError("cannot parse `uint16`", err)
+		return 0
+	}
+	if n < 0 {
+		tr.setColError("cannot parse `uint16`", fmt.Errorf("invalid syntax"))
+		return 0
+	}
+	if n > math.MaxUint16 {
+		tr.setColError("cannot parse `uint16`", fmt.Errorf("out of range"))
+		return 0
+	}
+	return uint16(n)
+}
+
+// Int8 returns the next int8 column value from the current row.
+func (tr *Reader) Int8() int8 {
+	if tr.err != nil {
+		return 0
+	}
+	b, err := tr.nextCol()
+	if err != nil {
+		tr.setColError("cannot read `int8`", err)
+		return 0
+	}
+	n, err := strconv.Atoi(b2s(b))
+	if err != nil {
+		tr.setColError("cannot parse `int8`", err)
+		return 0
+	}
+	if n < math.MinInt8 || n > math.MaxInt8 {
+		tr.setColError("cannot parse `int8`", fmt.Errorf("out of range"))
+		return 0
+	}
+	return int8(n)
+}
+
+// Uint8 returns the next uint8 column value from the current row.
+func (tr *Reader) Uint8() uint8 {
+	if tr.err != nil {
+		return 0
+	}
+	b, err := tr.nextCol()
+	if err != nil {
+		tr.setColError("cannot read `uint8`", err)
+		return 0
+	}
+	n, err := strconv.Atoi(b2s(b))
+	if err != nil {
+		tr.setColError("cannot parse `uint8`", err)
+		return 0
+	}
+	if n < 0 {
+		tr.setColError("cannot parse `uint8`", fmt.Errorf("invalid syntax"))
+		return 0
+	}
+	if n > math.MaxUint8 {
+		tr.setColError("cannot parse `uint8`", fmt.Errorf("out of range"))
+		return 0
+	}
+	return uint8(n)
+}
+
 // Int64 returns the next int64 column value from the current row.
 func (tr *Reader) Int64() int64 {
 	if tr.err != nil {
@@ -363,6 +459,13 @@ func (tr *Reader) Bytes() []byte {
 		b = b[n:]
 	}
 	return d
+}
+
+// String returns the next string column value from the current row.
+//
+// String allocates memory.
+func (tr *Reader) String() string {
+	return string(tr.Bytes())
 }
 
 // Date returns the next date column value from the current row.

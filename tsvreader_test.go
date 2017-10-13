@@ -587,6 +587,7 @@ func testReaderSlowSource(t *testing.T, rows, cols int) {
 
 func testReaderMultiRowsCols(t *testing.T, r *Reader, expected [][]string) {
 	t.Helper()
+
 	for i, rowS := range expected {
 		if !r.Next() {
 			t.Fatalf("Reader.Next must return true when reading row #%d", i+1)
@@ -642,6 +643,7 @@ func TestReaderUintSuccess(t *testing.T) {
 
 func testReaderUintSuccess(t *testing.T, expectedN uint) {
 	t.Helper()
+
 	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
@@ -682,6 +684,7 @@ func TestReaderInt32Success(t *testing.T) {
 
 func testReaderInt32Success(t *testing.T, expectedN int32) {
 	t.Helper()
+
 	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
@@ -700,6 +703,8 @@ func TestReaderInt32TooBig(t *testing.T) {
 }
 
 func testReaderInt32TooBig(t *testing.T, s string) {
+	t.Helper()
+
 	b := bytes.NewBufferString(s + "\n")
 	r := New(b)
 	r.Next()
@@ -725,6 +730,7 @@ func TestReaderUint32Success(t *testing.T) {
 
 func testReaderUint32Success(t *testing.T, expectedN uint32) {
 	t.Helper()
+
 	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
@@ -773,6 +779,216 @@ func TestReaderUint32TooBig(t *testing.T) {
 	}
 }
 
+func TestReaderInt16Success(t *testing.T) {
+	testReaderInt16Success(t, math.MaxInt16)
+	testReaderInt16Success(t, math.MinInt16)
+	testReaderInt16Success(t, 0)
+	testReaderInt16Success(t, 10)
+	testReaderInt16Success(t, -10)
+}
+
+func testReaderInt16Success(t *testing.T, expectedN int16) {
+	t.Helper()
+
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
+	r := New(b)
+	r.Next()
+	n := r.Int16()
+	if n != expectedN {
+		t.Fatalf("unexpected int16: %d. Expecting %d", n, expectedN)
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+}
+
+func TestReaderInt16TooBig(t *testing.T) {
+	testReaderInt16TooBig(t, fmt.Sprintf("1%d", math.MaxInt16))
+	testReaderInt16TooBig(t, fmt.Sprintf("-1%d", math.MaxInt16))
+}
+
+func testReaderInt16TooBig(t *testing.T, s string) {
+	t.Helper()
+
+	b := bytes.NewBufferString(s + "\n")
+	r := New(b)
+	r.Next()
+	n := r.Int16()
+	if n != 0 {
+		t.Fatalf("unexpected non-zero int16: %d", n)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-zero error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "out of range") {
+		t.Fatalf("unexpected error: %s. Must contain %q", err, "out of range")
+	}
+}
+
+func TestReaderUint16Success(t *testing.T) {
+	testReaderUint16Success(t, math.MaxUint16)
+	testReaderUint16Success(t, 0)
+	testReaderUint16Success(t, 10)
+}
+
+func testReaderUint16Success(t *testing.T, expectedN uint16) {
+	t.Helper()
+
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
+	r := New(b)
+	r.Next()
+	n := r.Uint16()
+	if n != expectedN {
+		t.Fatalf("unexpected uint16: %d. Expecting %d", n, expectedN)
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+}
+
+func TestReaderUint16Negative(t *testing.T) {
+	b := bytes.NewBufferString("-123\n")
+	r := New(b)
+	r.Next()
+	n := r.Uint16()
+	if n != 0 {
+		t.Fatalf("unexpected non-zero uint16: %d", n)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-zero error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "invalid syntax") {
+		t.Fatalf("unexpected error: %s. Must contain %q", err, "invalid syntax")
+	}
+}
+
+func TestReaderUint16TooBig(t *testing.T) {
+	b := bytes.NewBufferString(fmt.Sprintf("123%d\n", math.MaxUint16))
+	r := New(b)
+	r.Next()
+	n := r.Uint16()
+	if n != 0 {
+		t.Fatalf("unexpected non-zero uint16: %d", n)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-zero error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "out of range") {
+		t.Fatalf("unexpected error: %s. Must contain %q", err, "out of range")
+	}
+}
+
+func TestReaderInt8Success(t *testing.T) {
+	testReaderInt8Success(t, math.MaxInt8)
+	testReaderInt8Success(t, math.MinInt8)
+	testReaderInt8Success(t, 0)
+	testReaderInt8Success(t, 10)
+	testReaderInt8Success(t, -10)
+}
+
+func testReaderInt8Success(t *testing.T, expectedN int8) {
+	t.Helper()
+
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
+	r := New(b)
+	r.Next()
+	n := r.Int8()
+	if n != expectedN {
+		t.Fatalf("unexpected int8: %d. Expecting %d", n, expectedN)
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+}
+
+func TestReaderInt8TooBig(t *testing.T) {
+	testReaderInt8TooBig(t, fmt.Sprintf("1%d", math.MaxInt8))
+	testReaderInt8TooBig(t, fmt.Sprintf("-1%d", math.MaxInt8))
+}
+
+func testReaderInt8TooBig(t *testing.T, s string) {
+	t.Helper()
+
+	b := bytes.NewBufferString(s + "\n")
+	r := New(b)
+	r.Next()
+	n := r.Int8()
+	if n != 0 {
+		t.Fatalf("unexpected non-zero int8: %d", n)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-zero error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "out of range") {
+		t.Fatalf("unexpected error: %s. Must contain %q", err, "out of range")
+	}
+}
+
+func TestReaderUint8Success(t *testing.T) {
+	testReaderUint8Success(t, math.MaxUint8)
+	testReaderUint8Success(t, 0)
+	testReaderUint8Success(t, 10)
+}
+
+func testReaderUint8Success(t *testing.T, expectedN uint8) {
+	t.Helper()
+
+	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
+	r := New(b)
+	r.Next()
+	n := r.Uint8()
+	if n != expectedN {
+		t.Fatalf("unexpected uint8: %d. Expecting %d", n, expectedN)
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+}
+
+func TestReaderUint8Negative(t *testing.T) {
+	b := bytes.NewBufferString("-123\n")
+	r := New(b)
+	r.Next()
+	n := r.Uint8()
+	if n != 0 {
+		t.Fatalf("unexpected non-zero uint8: %d", n)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-zero error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "invalid syntax") {
+		t.Fatalf("unexpected error: %s. Must contain %q", err, "invalid syntax")
+	}
+}
+
+func TestReaderUint8TooBig(t *testing.T) {
+	b := bytes.NewBufferString(fmt.Sprintf("1%d\n", math.MaxUint8))
+	r := New(b)
+	r.Next()
+	n := r.Uint8()
+	if n != 0 {
+		t.Fatalf("unexpected non-zero uint8: %d", n)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-zero error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "out of range") {
+		t.Fatalf("unexpected error: %s. Must contain %q", err, "out of range")
+	}
+}
+
 func TestReaderInt64Success(t *testing.T) {
 	testReaderInt64Success(t, math.MaxInt64)
 	testReaderInt64Success(t, math.MinInt64)
@@ -783,6 +999,7 @@ func TestReaderInt64Success(t *testing.T) {
 
 func testReaderInt64Success(t *testing.T, expectedN int64) {
 	t.Helper()
+
 	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
@@ -801,6 +1018,8 @@ func TestReaderInt64TooBig(t *testing.T) {
 }
 
 func testReaderInt64TooBig(t *testing.T, s string) {
+	t.Helper()
+
 	b := bytes.NewBufferString(s + "\n")
 	r := New(b)
 	r.Next()
@@ -826,6 +1045,7 @@ func TestReaderUint64Success(t *testing.T) {
 
 func testReaderUint64Success(t *testing.T, expectedN uint64) {
 	t.Helper()
+
 	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	r.Next()
@@ -888,6 +1108,7 @@ func TestReaderFloat32Success(t *testing.T) {
 
 func testReaderFloat32Success(t *testing.T, f float32) {
 	t.Helper()
+
 	s := fmt.Sprintf("%f\n", f)
 	b := bytes.NewBufferString(s)
 	r := New(b)
@@ -910,6 +1131,8 @@ func TestReaderFloat32Error(t *testing.T) {
 }
 
 func testReaderFloat32Error(t *testing.T, s string) {
+	t.Helper()
+
 	b := bytes.NewBufferString(s + "\n")
 	r := New(b)
 	r.Next()
@@ -940,6 +1163,7 @@ func TestReaderFloat64Success(t *testing.T) {
 
 func testReaderFloat64Success(t *testing.T, f float64) {
 	t.Helper()
+
 	s := fmt.Sprintf("%f\n", f)
 	b := bytes.NewBufferString(s)
 	r := New(b)
@@ -962,6 +1186,8 @@ func TestReaderFloat64Error(t *testing.T) {
 }
 
 func testReaderFloat64Error(t *testing.T, s string) {
+	t.Helper()
+
 	b := bytes.NewBufferString(s + "\n")
 	r := New(b)
 	r.Next()
@@ -986,6 +1212,7 @@ func TestReaderDateSuccess(t *testing.T) {
 
 func testReaderDateSuccess(t *testing.T, date string) {
 	t.Helper()
+
 	b := bytes.NewBufferString(date + "\n")
 	r := New(b)
 	r.Next()
@@ -1023,6 +1250,7 @@ func TestReaderDateFailure(t *testing.T) {
 
 func testReaderDateFailure(t *testing.T, date string) {
 	t.Helper()
+
 	b := bytes.NewBufferString(date + "\n")
 	r := New(b)
 	r.Next()
@@ -1047,6 +1275,7 @@ func TestReaderDateTimeSuccess(t *testing.T) {
 
 func testReaderDateTimeSuccess(t *testing.T, datetime string) {
 	t.Helper()
+
 	b := bytes.NewBufferString(datetime + "\n")
 	r := New(b)
 	r.Next()
@@ -1085,6 +1314,7 @@ func TestReaderDateTimeFailure(t *testing.T) {
 
 func testReaderDateTimeFailure(t *testing.T, datetime string) {
 	t.Helper()
+
 	b := bytes.NewBufferString(datetime + "\n")
 	r := New(b)
 	r.Next()
@@ -1110,6 +1340,7 @@ func TestReaderBytesUnescape(t *testing.T) {
 
 func testReaderBytesUnescape(t *testing.T, before, after string) {
 	t.Helper()
+
 	b := bytes.NewBufferString(before + "\n")
 	r := New(b)
 	r.Next()
@@ -1119,5 +1350,26 @@ func testReaderBytesUnescape(t *testing.T, before, after string) {
 	}
 	if string(bb) != after {
 		t.Fatalf("unexpected unescaped result: %q. Expecting %q", bb, after)
+	}
+}
+
+func TestReaderString(t *testing.T) {
+	testReaderString(t, "", "")
+	testReaderString(t, "a", "a")
+	testReaderString(t, `a\nb`, "a\nb")
+}
+
+func testReaderString(t *testing.T, before, after string) {
+	t.Helper()
+
+	b := bytes.NewBufferString(before + "\n")
+	r := New(b)
+	r.Next()
+	s := r.String()
+	if r.Error() != nil {
+		t.Fatalf("unexpected error when parsing %q: %s", before, r.Error())
+	}
+	if s != after {
+		t.Fatalf("unexpected unescaped result: %q. Expecting %q", s, after)
 	}
 }
