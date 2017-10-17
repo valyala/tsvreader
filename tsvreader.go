@@ -64,6 +64,21 @@ func (tr *Reader) Error() error {
 	return tr.err
 }
 
+// ResetError resets the current error, so the reader could proceed further.
+func (tr *Reader) ResetError() {
+	tr.err = nil
+}
+
+// HasCols returns true if the current row contains unread columns.
+//
+// An empty row doesn't contain columns.
+//
+// This function may be used if TSV stream contains rows with different
+// number of colums.
+func (tr *Reader) HasCols() bool {
+	return len(tr.b) > 0
+}
+
 // Next advances to the next row.
 //
 // Returns true if the next row does exist.
@@ -74,7 +89,7 @@ func (tr *Reader) Next() bool {
 	if tr.err != nil {
 		return false
 	}
-	if tr.b != nil {
+	if len(tr.b) > 0 {
 		tr.err = fmt.Errorf("row #%d %q contains unread columns: %q", tr.row, tr.rowBuf, tr.b)
 		return false
 	}

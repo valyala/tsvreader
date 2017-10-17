@@ -11,11 +11,119 @@ import (
 	"testing"
 )
 
+func TestReaderHasCols(t *testing.T) {
+	b := bytes.NewBufferString("foo\tbar\n\n")
+	r := New(b)
+	if r.HasCols() {
+		t.Fatalf("HasCols must return false before calling Next")
+	}
+
+	if !r.Next() {
+		t.Fatalf("Next must return true")
+	}
+	bb := r.Bytes()
+	if string(bb) != "foo" {
+		t.Fatalf("unexpected bytes: %q. Expecting %q", bb, "foo")
+	}
+	if !r.HasCols() {
+		t.Fatalf("HasCols must return true")
+	}
+	bb = r.Bytes()
+	if string(bb) != "bar" {
+		t.Fatalf("unexpected bytes: %q. Expecting %q", bb, "bar")
+	}
+	if r.HasCols() {
+		t.Fatalf("HasCols must return false")
+	}
+
+	// An empty row is treated as it has a single empty column
+	if !r.Next() {
+		t.Fatalf("Next must return true")
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+	if r.HasCols() {
+		t.Fatalf("HasCols must return false")
+	}
+
+	// No more rows
+	if r.Next() {
+		t.Fatalf("Next must return false")
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+	if r.HasCols() {
+		t.Fatalf("HasCols must return false")
+	}
+}
+
+func TestReaderResetError(t *testing.T) {
+	b := bytes.NewBufferString("foo\tbar\n\nbaz\n")
+	r := New(b)
+	if !r.Next() {
+		t.Fatalf("Next must return true")
+	}
+	bb := r.Bytes()
+	if string(bb) != "foo" {
+		t.Fatalf("unexpected bytes: %q. Expecting %q", bb, "foo")
+	}
+	bb = r.Bytes()
+	if string(bb) != "bar" {
+		t.Fatalf("unexpected bytes: %q. Expecting %q", bb, "bar")
+	}
+
+	// Attempt to read the second (empty) row
+	if !r.Next() {
+		t.Fatalf("Next must return true")
+	}
+	bb = r.Bytes()
+	if string(bb) != "" {
+		t.Fatalf("unexpected non-empty bytes: %q", bb)
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+	bb = r.Bytes()
+	if string(bb) != "" {
+		t.Fatalf("unexpected non-empty bytes: %q", bb)
+	}
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-zero error")
+	}
+	errS := err.Error()
+	if !strings.Contains(errS, "no more columns") {
+		t.Fatalf("unexpected error: %s. Expecting %q", errS, "no more columns")
+	}
+
+	r.ResetError()
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+
+	// Read the last error
+	if !r.Next() {
+		t.Fatalf("Next must return true")
+	}
+	bb = r.Bytes()
+	if string(bb) != "baz" {
+		t.Fatalf("unexpected bytes: %q. Expecting %q", bb, "baz")
+	}
+	if r.Error() != nil {
+		t.Fatalf("unexpected error: %s", r.Error())
+	}
+	if r.Next() {
+		t.Fatalf("Next must return false")
+	}
+}
+
 func TestReaderEmpty(t *testing.T) {
 	b := bytes.NewBufferString("")
 	r := New(b)
 	if r.Next() {
-		t.Fatalf("Reader.Next must return false on empty data")
+		t.Fatalf("Next must return false on empty data")
 	}
 	err := r.Error()
 	if err != nil {
@@ -25,7 +133,7 @@ func TestReaderEmpty(t *testing.T) {
 	// Make sure r.Next() returns false on subsequent calls.
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false at the end of data")
+			t.Fatalf("Next must return false at the end of data")
 		}
 		err = r.Error()
 		if err != nil {
@@ -56,7 +164,7 @@ func TestReaderEmptyCol(t *testing.T) {
 	b := bytes.NewBufferString("\t\tfoobar\t\n")
 	r := New(b)
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true")
+		t.Fatalf("Next must return true")
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -95,7 +203,7 @@ func testReaderNoNewline(t *testing.T, s string) {
 	b := bytes.NewBufferString(s)
 	r := New(b)
 	if r.Next() {
-		t.Fatalf("Reader.Next must return false when no newline; s: %q", s)
+		t.Fatalf("Next must return false when no newline; s: %q", s)
 	}
 	err := r.Error()
 	if err == nil {
@@ -109,7 +217,7 @@ func testReaderNoNewline(t *testing.T, s string) {
 	// Make sure r.Next() returns false on subsequent calls.
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false after error; s: %q", s)
+			t.Fatalf("Next must return false after error; s: %q", s)
 		}
 		err1 := r.Error()
 		if err1 != err {
@@ -126,7 +234,7 @@ func TestReaderReset(t *testing.T) {
 		b := bytes.NewBufferString(s)
 		r.Reset(b)
 		if !r.Next() {
-			t.Fatalf("Reader.Next must return true for TSV %q", s)
+			t.Fatalf("Next must return true for TSV %q", s)
 		}
 		if r.Error() != nil {
 			t.Fatalf("unexpected error before reading TSV %q: %s", s, r.Error())
@@ -146,7 +254,7 @@ func TestReaderSingleRowBytesCol(t *testing.T) {
 	b := bytes.NewBufferString(fmt.Sprintf("%s\n", expectedS))
 	r := New(b)
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true on the first line. err: %v", r.Error())
+		t.Fatalf("Next must return true on the first line. err: %v", r.Error())
 	}
 	err := r.Error()
 	if err != nil {
@@ -164,7 +272,7 @@ func TestReaderSingleRowBytesCol(t *testing.T) {
 
 	// Attempt to read the next col, which doesn't exist.
 	if r.Next() {
-		t.Fatalf("Reader.Next must return false on a single row")
+		t.Fatalf("Next must return false on a single row")
 	}
 	err = r.Error()
 	if err != nil {
@@ -174,7 +282,7 @@ func TestReaderSingleRowBytesCol(t *testing.T) {
 	// Make sure r.Next() returns false on subsequent calls.
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false at the end of data")
+			t.Fatalf("Next must return false at the end of data")
 		}
 		if err != nil {
 			t.Fatalf("unexpected error at the end of data: %s", err)
@@ -187,7 +295,7 @@ func TestReaderSingleRowIntCol(t *testing.T) {
 	b := bytes.NewBufferString(fmt.Sprintf("%d\n", expectedN))
 	r := New(b)
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true on the first line. err: %v", r.Error())
+		t.Fatalf("Next must return true on the first line. err: %v", r.Error())
 	}
 	err := r.Error()
 	if err != nil {
@@ -205,7 +313,7 @@ func TestReaderSingleRowIntCol(t *testing.T) {
 
 	// Attempt to read the next col, which doesn't exist.
 	if r.Next() {
-		t.Fatalf("Reader.Next must return false on a single row")
+		t.Fatalf("Next must return false on a single row")
 	}
 	err = r.Error()
 	if err != nil {
@@ -215,7 +323,7 @@ func TestReaderSingleRowIntCol(t *testing.T) {
 	// Make sure r.Next() returns false on subsequent calls.
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false at the end of data")
+			t.Fatalf("Next must return false at the end of data")
 		}
 		if err != nil {
 			t.Fatalf("unexpected error at the end of data: %s", err)
@@ -227,7 +335,7 @@ func TestReaderInvalidColType(t *testing.T) {
 	b := bytes.NewBufferString("foobar\n")
 	r := New(b)
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true on the first line. err: %v", r.Error())
+		t.Fatalf("Next must return true on the first line. err: %v", r.Error())
 	}
 	err := r.Error()
 	if err != nil {
@@ -252,7 +360,7 @@ func TestReaderNoMoreCols(t *testing.T) {
 	b := bytes.NewBufferString("aaa\n")
 	r := New(b)
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true on the first line. err: %v", r.Error())
+		t.Fatalf("Next must return true on the first line. err: %v", r.Error())
 	}
 	err := r.Error()
 	if err != nil {
@@ -300,7 +408,7 @@ func TestReaderNoMoreCols(t *testing.T) {
 	// atempt to read more rows
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false")
+			t.Fatalf("Next must return false")
 		}
 		err = r.Error()
 		if err == nil {
@@ -318,7 +426,7 @@ func TestReaderSingleRowMultiCols(t *testing.T) {
 	r := New(b)
 
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true on the first line. err: %v", r.Error())
+		t.Fatalf("Next must return true on the first line. err: %v", r.Error())
 	}
 	err := r.Error()
 	if err != nil {
@@ -364,7 +472,7 @@ func TestReaderSingleRowMultiCols(t *testing.T) {
 	// Attempt to read more rows
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false")
+			t.Fatalf("Next must return false")
 		}
 		err = r.Error()
 		if err != nil {
@@ -377,7 +485,7 @@ func TestReaderUnreadColsSingle(t *testing.T) {
 	b := bytes.NewBufferString("foo\tbar\n")
 	r := New(b)
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true")
+		t.Fatalf("Next must return true")
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -394,7 +502,7 @@ func TestReaderUnreadColsSingle(t *testing.T) {
 	// Attempt to read next row while the current row isnt read till the end
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false, because the previous row has unread columns")
+			t.Fatalf("Next must return false, because the previous row has unread columns")
 		}
 		err := r.Error()
 		if err == nil {
@@ -411,7 +519,7 @@ func TestReaderUnreadColsAll(t *testing.T) {
 	b := bytes.NewBufferString("foo\tbar\n")
 	r := New(b)
 	if !r.Next() {
-		t.Fatalf("Reader.Next must return true")
+		t.Fatalf("Next must return true")
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -420,7 +528,7 @@ func TestReaderUnreadColsAll(t *testing.T) {
 	// Attempt to read next row while the current row isnt read till the end
 	for i := 0; i < 10; i++ {
 		if r.Next() {
-			t.Fatalf("Reader.Next must return false, because the previous row has unread columns")
+			t.Fatalf("Next must return false, because the previous row has unread columns")
 		}
 		err := r.Error()
 		if err == nil {
@@ -456,7 +564,7 @@ func testReaderMultiRowsBytesCol(t *testing.T, rows int) {
 	r := New(b)
 	for i, expectedS := range expected {
 		if !r.Next() {
-			t.Fatalf("Reader.Next must return true when reading %q at row #%d", expectedS, i+1)
+			t.Fatalf("Next must return true when reading %q at row #%d", expectedS, i+1)
 		}
 		if r.Error() != nil {
 			t.Fatalf("unexpected error when reading %q at row #%d: %s", expectedS, i+1, r.Error())
@@ -471,7 +579,7 @@ func testReaderMultiRowsBytesCol(t *testing.T, rows int) {
 	}
 
 	if r.Next() {
-		t.Fatalf("Reader.Next must return false")
+		t.Fatalf("Next must return false")
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -504,7 +612,7 @@ func testReaderMultiRowsIntCol(t *testing.T, rows int) {
 	r := New(b)
 	for i, expectedN := range expected {
 		if !r.Next() {
-			t.Fatalf("Reader.Next must return true when reading %d at row #%d", expectedN, i+1)
+			t.Fatalf("Next must return true when reading %d at row #%d", expectedN, i+1)
 		}
 		if r.Error() != nil {
 			t.Fatalf("unexpected error when reading %d at row #%d: %s", expectedN, i+1, r.Error())
@@ -519,7 +627,7 @@ func testReaderMultiRowsIntCol(t *testing.T, rows int) {
 	}
 
 	if r.Next() {
-		t.Fatalf("Reader.Next must return false")
+		t.Fatalf("Next must return false")
 	}
 	if r.Error() != nil {
 		t.Fatalf("unexpected error: %s", r.Error())
@@ -571,7 +679,7 @@ func testReaderSlowSource(t *testing.T, rows, cols int) {
 	for i := 0; i < rows; i++ {
 		var rowS []string
 		for j := 0; j < cols; j++ {
-			s := fmt.Sprintf("foobar%d", j+i*cols)
+			s := fmt.Sprintf("foo тест %d", j+i*cols)
 			rowS = append(rowS, s)
 		}
 		expected = append(expected, rowS)
@@ -590,7 +698,7 @@ func testReaderMultiRowsCols(t *testing.T, r *Reader, expected [][]string) {
 
 	for i, rowS := range expected {
 		if !r.Next() {
-			t.Fatalf("Reader.Next must return true when reading row #%d", i+1)
+			t.Fatalf("Next must return true when reading row #%d", i+1)
 		}
 		if r.Error() != nil {
 			t.Fatalf("unexpected error when reading row #%d: %s", i+1, r.Error())
