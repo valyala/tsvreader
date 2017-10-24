@@ -602,11 +602,12 @@ func (tr *Reader) nextCol() ([]byte, error) {
 	if tr.row == 0 {
 		return nil, fmt.Errorf("missing Next call")
 	}
+
+	tr.col++
 	if tr.b == nil {
 		return nil, fmt.Errorf("no more columns")
 	}
 
-	tr.col++
 	n := bytes.IndexByte(tr.b, '\t')
 	if n < 0 {
 		// last column
