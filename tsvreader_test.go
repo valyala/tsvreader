@@ -12,7 +12,7 @@ import (
 )
 
 func TestReaderHasCols(t *testing.T) {
-	b := bytes.NewBufferString("foo\tbar\n\n")
+	b := bytes.NewBufferString("foo\t\n\n")
 	r := New(b)
 	if r.HasCols() {
 		t.Fatalf("HasCols must return false before calling Next")
@@ -29,8 +29,8 @@ func TestReaderHasCols(t *testing.T) {
 		t.Fatalf("HasCols must return true")
 	}
 	bb = r.Bytes()
-	if string(bb) != "bar" {
-		t.Fatalf("unexpected bytes: %q. Expecting %q", bb, "bar")
+	if len(bb) > 0 {
+		t.Fatalf("unexpected non-empty bytes: %q", bb)
 	}
 	if r.HasCols() {
 		t.Fatalf("HasCols must return false")

@@ -78,7 +78,7 @@ func (tr *Reader) ResetError() {
 // This function may be used if TSV stream contains rows with different
 // number of colums.
 func (tr *Reader) HasCols() bool {
-	return len(tr.b) > 0
+	return len(tr.rowBuf) > 0 && tr.b != nil
 }
 
 // Next advances to the next row.
@@ -91,7 +91,7 @@ func (tr *Reader) Next() bool {
 	if tr.err != nil {
 		return false
 	}
-	if len(tr.b) > 0 {
+	if tr.HasCols() {
 		tr.err = fmt.Errorf("row #%d %q contains unread columns: %q", tr.row, tr.rowBuf, tr.b)
 		return false
 	}
