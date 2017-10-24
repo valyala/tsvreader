@@ -499,7 +499,7 @@ func (tr *Reader) Bytes() []byte {
 
 // String returns the next string column value from the current row.
 //
-// String allocates memory.
+// String allocates memory. Use Bytes to avoid memory allocations.
 func (tr *Reader) String() string {
 	return string(tr.Bytes())
 }
