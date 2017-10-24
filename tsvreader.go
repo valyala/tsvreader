@@ -87,6 +87,8 @@ func (tr *Reader) HasCols() bool {
 //
 // Next must be called after reading all the columns on the previous row.
 // Check Error after Next returns false.
+//
+// HasCols may be used for reading rows with variable number of columns.
 func (tr *Reader) Next() bool {
 	if tr.err != nil {
 		return false
