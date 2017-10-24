@@ -35,7 +35,8 @@ type Reader struct {
 	b       []byte
 	scratch []byte
 
-	err error
+	err          error
+	needUnescape bool
 }
 
 // Reset resets the reader for reading from r.
@@ -54,6 +55,7 @@ func (tr *Reader) Reset(r io.Reader) {
 	tr.scratch = tr.scratch[:0]
 
 	tr.err = nil
+	tr.needUnescape = false
 }
 
 // Error returns the last error.
@@ -108,6 +110,7 @@ func (tr *Reader) Next() bool {
 			}
 			tr.rowBuf = b[:len(b)-1]
 			tr.b = tr.rowBuf
+			tr.needUnescape = (bytes.IndexByte(tr.b, '\\') >= 0)
 			return true
 		}
 
@@ -430,14 +433,19 @@ func (tr *Reader) Bytes() []byte {
 		return nil
 	}
 
-	// Unescape b
-	n := bytes.IndexByte(b, '\\')
-	if n < 0 {
-		// Fast path - nothing to unescape
+	if !tr.needUnescape {
+		// Fast path - nothing to unescape.
 		return b
 	}
 
-	// Slow path - in-place unescaping compatible with ClickHouse
+	// Unescape b
+	n := bytes.IndexByte(b, '\\')
+	if n < 0 {
+		// Nothing to unescape in the current column.
+		return b
+	}
+
+	// Slow path - in-place unescaping compatible with ClickHouse.
 	n++
 	d := b[:n]
 	b = b[n:]
