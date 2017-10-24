@@ -1,7 +1,6 @@
 package tsvreader
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -13,9 +12,9 @@ import (
 
 // New returns new Reader that reads TSV data from r.
 func New(r io.Reader) *Reader {
-	return &Reader{
-		br: bufio.NewReader(r),
-	}
+	var tr Reader
+	tr.Reset(r)
+	return &tr
 }
 
 // Reader reads tab-separated data.
@@ -26,7 +25,10 @@ func New(r io.Reader) *Reader {
 // It is expected that columns are separated by tabs while rows
 // are separated by newlines.
 type Reader struct {
-	br *bufio.Reader
+	r    io.Reader
+	rb   []byte
+	rErr error
+	rBuf [4192]byte
 
 	col int
 	row int
@@ -41,11 +43,9 @@ type Reader struct {
 
 // Reset resets the reader for reading from r.
 func (tr *Reader) Reset(r io.Reader) {
-	if tr.br == nil {
-		tr.br = bufio.NewReader(r)
-	} else {
-		tr.br.Reset(r)
-	}
+	tr.r = r
+	tr.rb = nil
+	tr.rErr = nil
 
 	tr.col = 0
 	tr.row = 0
@@ -101,32 +101,43 @@ func (tr *Reader) Next() bool {
 	tr.rowBuf = nil
 
 	for {
-		b, err := tr.br.ReadSlice('\n')
-		if err == nil {
+		if len(tr.rb) == 0 {
+			// Read buffer is empty. Attempt to fill it.
+			if tr.rErr != nil {
+				tr.err = tr.rErr
+				if tr.err != io.EOF {
+					tr.err = fmt.Errorf("cannot read row #%d: %s", tr.row, tr.err)
+				} else if len(tr.scratch) > 0 {
+					tr.err = fmt.Errorf("cannot find newline at the end of row #%d; row: %q", tr.row, tr.scratch)
+				}
+				return false
+			}
+			n, err := tr.r.Read(tr.rBuf[:])
+			tr.rb = tr.rBuf[:n]
+			tr.needUnescape = (bytes.IndexByte(tr.rb, '\\') >= 0)
+			tr.rErr = err
+		}
+
+		// Search for the end of the current row.
+		n := bytes.IndexByte(tr.rb, '\n')
+		if n >= 0 {
+			// Fast path: the row has been found.
+			b := tr.rb[:n]
+			tr.rb = tr.rb[n+1:]
 			if len(tr.scratch) > 0 {
 				tr.scratch = append(tr.scratch, b...)
 				b = tr.scratch
 				tr.scratch = tr.scratch[:0]
 			}
-			tr.rowBuf = b[:len(b)-1]
+			tr.rowBuf = b
 			tr.b = tr.rowBuf
-			tr.needUnescape = (bytes.IndexByte(tr.b, '\\') >= 0)
 			return true
 		}
 
-		if err != bufio.ErrBufferFull {
-			if err != io.EOF {
-				tr.err = fmt.Errorf("cannot read row #%d: %s", tr.row, err)
-			} else if len(b) == 0 && len(tr.scratch) == 0 {
-				tr.err = io.EOF
-			} else {
-				tr.scratch = append(tr.scratch, b...)
-				tr.err = fmt.Errorf("cannot find newline at the end of row #%d; row: %q", tr.row, tr.scratch)
-			}
-			return false
-		}
-
-		tr.scratch = append(tr.scratch, b...)
+		// Slow path: cannot find the end of row.
+		// Append tr.rb to tr.scratch and repeat.
+		tr.scratch = append(tr.scratch, tr.rb...)
+		tr.rb = nil
 	}
 }
 
