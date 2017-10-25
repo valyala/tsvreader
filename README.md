@@ -7,7 +7,8 @@
 * Compatible with `TSV` format used in [ClickHouse](https://github.com/yandex/ClickHouse) responses.
 * May read rows with variable number of columns using [Reader.HasCols](https://godoc.org/github.com/valyala/tsvreader#Reader.HasCols).
   This functionality allows reading [WITH TOTALS](http://clickhouse.readthedocs.io/en/latest/reference_en.html#WITH+TOTALS+modifier)
-  row from `ClickHouse` responses.
+  row from `ClickHouse` responses and [BlockTabSeparated](http://clickhouse.readthedocs.io/en/latest/reference_en.html#BlockTabSeparated)
+  responses.
 
 ## Documentation
 
