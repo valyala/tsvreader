@@ -433,6 +433,14 @@ func (tr *Reader) Float64() float64 {
 	return f64
 }
 
+// SkipCol skips the next column from the current row.
+func (tr *Reader) SkipCol() {
+	_, err := tr.nextCol()
+	if err != nil {
+		tr.setColError("cannot skip column", err)
+	}
+}
+
 // Bytes returns the next bytes column value from the current row.
 //
 // The returned value is valid until the next call to Reader.

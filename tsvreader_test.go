@@ -11,6 +11,36 @@ import (
 	"testing"
 )
 
+func TestReaderSkipCol(t *testing.T) {
+	b := bytes.NewBufferString("foo\tbar2\t42\n")
+	r := New(b)
+	if !r.Next() {
+		t.Fatalf("Next must return true")
+	}
+	r.SkipCol()
+	r.SkipCol()
+	bb := r.Bytes()
+	if string(bb) != "42" {
+		t.Fatalf("unexpected bytes: %q. Expecting %q", bb, "42")
+	}
+	if r.HasCols() {
+		t.Fatalf("HasCols must return false")
+	}
+	if err := r.Error(); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// This must fail, since there are no more columns
+	r.SkipCol()
+	err := r.Error()
+	if err == nil {
+		t.Fatalf("expecting non-nil error")
+	}
+	if errS := err.Error(); !strings.Contains(errS, "no more columns") {
+		t.Fatalf("unexpected error: %q; must contain `no more columns`", err)
+	}
+}
+
 func TestReaderHasCols(t *testing.T) {
 	b := bytes.NewBufferString("foo\t\n\n")
 	r := New(b)
