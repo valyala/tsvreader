@@ -435,6 +435,9 @@ func (tr *Reader) Float64() float64 {
 
 // SkipCol skips the next column from the current row.
 func (tr *Reader) SkipCol() {
+	if tr.err != nil {
+		return
+	}
 	_, err := tr.nextCol()
 	if err != nil {
 		tr.setColError("cannot skip column", err)
