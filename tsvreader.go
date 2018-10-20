@@ -28,7 +28,7 @@ type Reader struct {
 	r    io.Reader
 	rb   []byte
 	rErr error
-	rBuf [4 << 10]byte
+	rBuf [16*1024]byte
 
 	col int
 	row int
